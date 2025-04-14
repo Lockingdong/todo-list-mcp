@@ -10,9 +10,6 @@ import (
 )
 
 func main() {
-	// 建立待辦事項儲存器
-	store := NewTodoStore()
-
 	// 建立一個新的 MCP 伺服器
 	// The server handles the communication between the client and the todo store
 	s := server.NewMCPServer(
@@ -22,6 +19,9 @@ func main() {
 		server.WithLogging(),                        // Enable logging
 		server.WithRecovery(),                       // Enable panic recovery
 	)
+
+	// 建立待辦事項儲存器
+	store := NewTodoStore()
 
 	// 新增待辦事項工具
 	// This tool creates a new todo item with the given title
