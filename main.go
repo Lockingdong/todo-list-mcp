@@ -4,90 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
-	"time"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
 
-// Todo 代表一個待辦事項
-// Each todo item contains an ID, title, completion status, and creation timestamp
-type Todo struct {
-	ID        string    `json:"id"`         // Unique identifier for the todo item
-	Title     string    `json:"title"`      // The text content of the todo item
-	Completed bool      `json:"completed"`  // Whether the todo item is completed
-	CreatedAt time.Time `json:"created_at"` // When the todo item was created
-}
-
-// TodoStore 是一個用於儲存待辦事項的記憶體儲存器
-// It uses a mutex to ensure thread-safe operations on the todos map
-type TodoStore struct {
-	sync.RWMutex                  // Mutex for thread-safe operations
-	todos        map[string]*Todo // Map of todo items indexed by their IDs
-}
-
-// NewTodoStore creates a new TodoStore
-// Returns an initialized TodoStore with an empty map
-func NewTodoStore() *TodoStore {
-	return &TodoStore{
-		todos: make(map[string]*Todo),
-	}
-}
-
-// Add 新增一個待辦事項
-// The todo is stored in memory and indexed by its ID
-// Returns nil on success
-func (s *TodoStore) Add(todo *Todo) error {
-	s.Lock()
-	defer s.Unlock()
-	s.todos[todo.ID] = todo
-	return nil
-}
-
-// Delete 刪除一個待辦事項
-// Returns an error if the todo doesn't exist
-func (s *TodoStore) Delete(id string) error {
-	s.Lock()
-	defer s.Unlock()
-
-	if _, exists := s.todos[id]; !exists {
-		return errors.New("找不到待辦事項")
-	}
-
-	delete(s.todos, id)
-	return nil
-}
-
-// Get 取得所有待辦事項
-// Returns a slice of all todos in no particular order
-func (s *TodoStore) Get() []*Todo {
-	s.RLock()
-	defer s.RUnlock()
-
-	todos := make([]*Todo, 0, len(s.todos))
-	for _, todo := range s.todos {
-		todos = append(todos, todo)
-	}
-	return todos
-}
-
-// Update 更新待辦事項的完成狀態
-// Returns an error if the todo with the given ID doesn't exist
-func (s *TodoStore) Update(id string, completed bool) error {
-	s.Lock()
-	defer s.Unlock()
-
-	todo, exists := s.todos[id]
-	if !exists {
-		return errors.New("找不到待辦事項")
-	}
-
-	todo.Completed = completed
-	return nil
-}
-
 func main() {
+	// 建立待辦事項儲存器
+	store := NewTodoStore()
+
 	// 建立一個新的 MCP 伺服器
 	// The server handles the communication between the client and the todo store
 	s := server.NewMCPServer(
@@ -98,16 +23,13 @@ func main() {
 		server.WithRecovery(),                       // Enable panic recovery
 	)
 
-	// 建立待辦事項儲存器
-	store := NewTodoStore()
-
 	// 新增待辦事項工具
 	// This tool creates a new todo item with the given title
 	addTodoTool := mcp.NewTool("add_todo",
-		mcp.WithDescription("新增一個待辦事項"),
+		mcp.WithDescription("新增一個待辦事項"), // 新增待辦事項的描述
 		mcp.WithString("title",
-			mcp.Required(),
-			mcp.Description("待辦事項的標題"),
+			mcp.Required(),             // 標題是必需的
+			mcp.Description("待辦事項的標題"), // 標題的描述
 		),
 	)
 
@@ -120,12 +42,7 @@ func main() {
 		}
 
 		// Create a new todo with a timestamp-based ID
-		todo := &Todo{
-			ID:        fmt.Sprintf("%d", time.Now().UnixNano()),
-			Title:     title,
-			Completed: false,
-			CreatedAt: time.Now(),
-		}
+		todo := NewTodo(title)
 		if err := store.Add(todo); err != nil {
 			return nil, err
 		}
