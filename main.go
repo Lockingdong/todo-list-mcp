@@ -51,24 +51,6 @@ func main() {
 		return mcp.NewToolResultText(fmt.Sprintf("已新增待辦事項：%s，ID：%s", todo.Title, todo.ID)), nil
 	})
 
-	// 刪除待辦事項工具
-	// This tool removes a todo item by its ID
-	deleteTodoTool := mcp.NewTool("delete_todo",
-		mcp.WithDescription("刪除一個待辦事項"),
-		mcp.WithString("id",
-			mcp.Required(),
-			mcp.Description("要刪除的待辦事項 ID"),
-		),
-	)
-
-	s.AddTool(deleteTodoTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		id := request.Params.Arguments["id"].(string)
-		if err := store.Delete(id); err != nil {
-			return nil, err
-		}
-		return mcp.NewToolResultText(fmt.Sprintf("已刪除 ID 為 %s 的待辦事項", id)), nil
-	})
-
 	// 取得待辦事項工具
 	// This tool retrieves and displays all todo items
 	getTodosTool := mcp.NewTool("get_todos",
@@ -120,6 +102,24 @@ func main() {
 			status = "已完成"
 		}
 		return mcp.NewToolResultText(fmt.Sprintf("已將待辦事項 %s 更新為%s", id, status)), nil
+	})
+
+	// 刪除待辦事項工具
+	// This tool removes a todo item by its ID
+	deleteTodoTool := mcp.NewTool("delete_todo",
+		mcp.WithDescription("刪除一個待辦事項"),
+		mcp.WithString("id",
+			mcp.Required(),
+			mcp.Description("要刪除的待辦事項 ID"),
+		),
+	)
+
+	s.AddTool(deleteTodoTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		id := request.Params.Arguments["id"].(string)
+		if err := store.Delete(id); err != nil {
+			return nil, err
+		}
+		return mcp.NewToolResultText(fmt.Sprintf("已刪除 ID 為 %s 的待辦事項", id)), nil
 	})
 
 	// Start the server and handle any errors

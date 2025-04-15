@@ -25,17 +25,6 @@ func (s *TodoStore) Add(todo *Todo) error {
 	return nil
 }
 
-// Delete 刪除一個待辦事項
-// Returns an error if the todo doesn't exist
-func (s *TodoStore) Delete(id string) error {
-	if _, exists := s.todos[id]; !exists {
-		return errors.New("找不到待辦事項")
-	}
-
-	delete(s.todos, id)
-	return nil
-}
-
 // Get 取得所有待辦事項
 // Returns a slice of all todos in no particular order
 func (s *TodoStore) Get() []*Todo {
@@ -55,5 +44,16 @@ func (s *TodoStore) Update(id string, completed bool) error {
 	}
 
 	todo.Completed = completed
+	return nil
+}
+
+// Delete 刪除一個待辦事項
+// Returns an error if the todo doesn't exist
+func (s *TodoStore) Delete(id string) error {
+	if _, exists := s.todos[id]; !exists {
+		return errors.New("找不到待辦事項")
+	}
+
+	delete(s.todos, id)
 	return nil
 }
