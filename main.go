@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"example.com/todo-list-mcp/todo_store"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
@@ -21,7 +22,7 @@ func main() {
 	)
 
 	// 建立待辦事項儲存器
-	store := NewTodoStore()
+	store := todo_store.NewTodoStore()
 
 	// 新增待辦事項工具
 	// This tool creates a new todo item with the given title
@@ -42,7 +43,7 @@ func main() {
 		}
 
 		// Create a new todo with a timestamp-based ID
-		todo := NewTodo(title)
+		todo := todo_store.NewTodo(title)
 		if err := store.Add(todo); err != nil {
 			return nil, err
 		}
