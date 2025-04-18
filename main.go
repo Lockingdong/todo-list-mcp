@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 
 	"example.com/todo-list-mcp/todo_store"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -11,6 +12,7 @@ import (
 )
 
 func main() {
+
 	// 建立一個新的 MCP 伺服器
 	// The server handles the communication between the client and the todo store
 	s := server.NewMCPServer(
@@ -21,8 +23,14 @@ func main() {
 		server.WithRecovery(),                       // Enable panic recovery
 	)
 
+	// 設定待辦事項儲存器路徑
+	const storeFilePath = "/Users/lidongying/Documents/Projects/todo-list-mcp"
+
 	// 建立待辦事項儲存器
-	store := todo_store.NewTodoStore()
+	store, err := todo_store.NewTodoStore(storeFilePath)
+	if err != nil {
+		log.Fatalf("建立待辦事項儲存器失敗：%v", err)
+	}
 
 	// 新增待辦事項工具
 	// This tool creates a new todo item with the given title
@@ -58,7 +66,10 @@ func main() {
 	)
 
 	s.AddTool(getTodosTool, func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		todos := store.Get()
+		todos, err := store.Get()
+		if err != nil {
+			return nil, err
+		}
 		if len(todos) == 0 {
 			return mcp.NewToolResultText("目前沒有待辦事項"), nil
 		}

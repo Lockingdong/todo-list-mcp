@@ -1,59 +1,110 @@
 package todo_store
 
 import (
+	"encoding/json"
 	"errors"
+	"os"
+	"path/filepath"
 )
 
-// TodoStore 是一個用於儲存待辦事項的記憶體儲存器
+// TodoStore 是一個用於儲存待辦事項的JSON檔案儲存器
 type TodoStore struct {
-	todos map[string]*Todo // Map of todo items indexed by their IDs
+	filePath string // Path to the JSON storage file
 }
 
 // NewTodoStore creates a new TodoStore
-// Returns an initialized TodoStore with an empty map
-func NewTodoStore() *TodoStore {
-	return &TodoStore{
-		todos: make(map[string]*Todo),
+func NewTodoStore(storeFilePath string) (*TodoStore, error) {
+	storePath := filepath.Join(storeFilePath, "todos.json")
+
+	// Initialize empty JSON file if it doesn't exist
+	if _, err := os.Stat(storePath); os.IsNotExist(err) {
+		if err := os.WriteFile(storePath, []byte("{}"), 0644); err != nil {
+			return nil, err
+		}
 	}
+
+	return &TodoStore{
+		filePath: storePath,
+	}, nil
 }
 
 // Add 新增一個待辦事項
-// The todo is stored in memory and indexed by its ID
-// Returns nil on success
 func (s *TodoStore) Add(todo *Todo) error {
-	s.todos[todo.ID] = todo
-	return nil
+	todos, err := s.readTodos()
+	if err != nil {
+		return err
+	}
+
+	todos[todo.ID] = todo
+	return s.writeTodos(todos)
 }
 
 // Get 取得所有待辦事項
-// Returns a slice of all todos in no particular order
-func (s *TodoStore) Get() []*Todo {
-	todos := make([]*Todo, 0, len(s.todos))
-	for _, todo := range s.todos {
-		todos = append(todos, todo)
+func (s *TodoStore) Get() ([]*Todo, error) {
+	todos, err := s.readTodos()
+	if err != nil {
+		return nil, err
 	}
-	return todos
+
+	result := make([]*Todo, 0, len(todos))
+	for _, todo := range todos {
+		result = append(result, todo)
+	}
+	return result, nil
 }
 
 // Update 更新待辦事項的完成狀態
-// Returns an error if the todo with the given ID doesn't exist
 func (s *TodoStore) Update(id string, completed bool) error {
-	todo, exists := s.todos[id]
+	todos, err := s.readTodos()
+	if err != nil {
+		return err
+	}
+
+	todo, exists := todos[id]
 	if !exists {
 		return errors.New("找不到待辦事項")
 	}
 
 	todo.Completed = completed
-	return nil
+	return s.writeTodos(todos)
 }
 
 // Delete 刪除一個待辦事項
-// Returns an error if the todo doesn't exist
 func (s *TodoStore) Delete(id string) error {
-	if _, exists := s.todos[id]; !exists {
+	todos, err := s.readTodos()
+	if err != nil {
+		return err
+	}
+
+	if _, exists := todos[id]; !exists {
 		return errors.New("找不到待辦事項")
 	}
 
-	delete(s.todos, id)
-	return nil
+	delete(todos, id)
+	return s.writeTodos(todos)
+}
+
+// readTodos reads todos from the JSON file
+func (s *TodoStore) readTodos() (map[string]*Todo, error) {
+	data, err := os.ReadFile(s.filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	todos := make(map[string]*Todo)
+	if err := json.Unmarshal(data, &todos); err != nil {
+		return nil, err
+	}
+
+	return todos, nil
+}
+
+// writeTodos writes todos to the JSON file
+func (s *TodoStore) writeTodos(todos map[string]*Todo) error {
+	data, err := json.MarshalIndent(todos, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(s.filePath, data, 0644)
 }
