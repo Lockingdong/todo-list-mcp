@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 
 	"example.com/todo-list-mcp/todo_store"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -12,6 +14,8 @@ import (
 )
 
 func main() {
+	// 設定待辦事項儲存器路徑
+	const storeFilePath = "/Users/<your-username>/Documents/Projects/todo-list-mcp"
 
 	// 建立一個新的 MCP 伺服器
 	// The server handles the communication between the client and the todo store
@@ -22,9 +26,6 @@ func main() {
 		server.WithLogging(),                        // Enable logging
 		server.WithRecovery(),                       // Enable panic recovery
 	)
-
-	// 設定待辦事項儲存器路徑
-	const storeFilePath = "/Users/lidongying/Documents/Projects/todo-list-mcp"
 
 	// 建立待辦事項儲存器
 	store, err := todo_store.NewTodoStore(storeFilePath)
@@ -131,6 +132,65 @@ func main() {
 			return nil, err
 		}
 		return mcp.NewToolResultText(fmt.Sprintf("已刪除 ID 為 %s 的待辦事項", id)), nil
+	})
+
+	// 總結待辦事項
+	s.AddPrompt(mcp.NewPrompt("總結待辦事項",
+		mcp.WithPromptDescription("總結待辦事項"),
+	), func(ctx context.Context, request mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+		todos, err := store.Get()
+		if err != nil {
+			return nil, err
+		}
+
+		var result string
+		for _, todo := range todos {
+			if todo.Completed {
+				result += fmt.Sprintf("%s %s (ID: %s)\n", "[x]", todo.Title, todo.ID)
+			} else {
+				result += fmt.Sprintf("%s %s (ID: %s)\n", "[ ]", todo.Title, todo.ID)
+			}
+		}
+
+		return mcp.NewGetPromptResult(
+			"總結待辦事項",
+			[]mcp.PromptMessage{
+				mcp.NewPromptMessage(
+					mcp.RoleAssistant,
+					mcp.NewTextContent("你是一個待辦事項總結專家，請根據待辦事項的完成狀態，總結待辦事項"),
+				),
+				mcp.NewPromptMessage(
+					mcp.RoleUser,
+					mcp.NewTextContent(result),
+				),
+			},
+		), nil
+	})
+
+	// 讀取待辦事項 JSON 檔案
+	s.AddResource(mcp.NewResource(
+		"docs://todo.json",
+		"Project README",
+		mcp.WithResourceDescription("The project's README file"),
+		mcp.WithMIMEType("application/json"),
+	), func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+		// check if the file exists
+		if _, err := os.Stat(filepath.Join(storeFilePath, "todos.json")); os.IsNotExist(err) {
+			return nil, errors.New("待辦事項 JSON 檔案不存在")
+		}
+
+		content, err := os.ReadFile(filepath.Join(storeFilePath, "todos.json"))
+		if err != nil {
+			return nil, err
+		}
+
+		return []mcp.ResourceContents{
+			mcp.TextResourceContents{
+				URI:      "docs://todo.json",
+				MIMEType: "application/json",
+				Text:     string(content),
+			},
+		}, nil
 	})
 
 	// Start the server and handle any errors
