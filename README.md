@@ -59,6 +59,11 @@
 - Go 1.16 或更高版本
 - 支援標準輸入輸出的終端機環境
 
+## Go Command
+```
+go build main.go
+```
+
 ## 伺服器配置
 
 使用以下配置來設定 MCP Server：
