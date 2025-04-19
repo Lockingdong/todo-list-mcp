@@ -71,7 +71,7 @@ go build main.go
 ```json
 {
   "todo-list-mcp-server": {
-    "command": "/Users/lidongying/Documents/Projects/todo-list-mcp/main"
+    "command": "/Users/<USER_NAME>/Documents/Projects/todo-list-mcp/main"
   }
 }
 ```
