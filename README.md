@@ -59,6 +59,18 @@
 - Go 1.16 或更高版本
 - 支援標準輸入輸出的終端機環境
 
+## 伺服器配置
+
+使用以下配置來設定 MCP Server：
+
+```json
+{
+  "todo-list-mcp-server": {
+    "command": "/Users/lidongying/Documents/Projects/todo-list-mcp/main"
+  }
+}
+```
+
 ## 授權
 
 本專案採用 MIT 授權條款。
